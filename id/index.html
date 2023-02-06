@@ -1,0 +1,89 @@
+<script type="text/javascript">
+  const GET = 'get'
+  const SET = 'set'
+  const DOMAIN = 'https://' + window.location.search.substring(1) + '.decentraland.org'
+  const memory = JSON.parse(localStorage.getItem('memory')) || {}
+  window.addEventListener('message', handler)
+
+  window.top.postMessage(JSON.stringify({
+    type: 'bridged'
+  }), DOMAIN)
+
+  ;function handler(msg) {
+    if (!msg.origin.match(new RegExp('^https://[-_a-zA-Z0-9]+\.decent\.so$', 'g'))) {
+      return
+    }
+    let data = {}
+    try {
+      data = JSON.parse(msg.data)
+    } catch (err) {
+      console.error('Could not parse data')
+      return
+    }
+    if (!Object.keys(data).length || !data.type) {
+      return
+    }
+    const { key, id } = data
+
+    if (data.type === GET) {
+      if (!id) {
+        console.error('No request id provided')
+        return
+      }
+      if (!key || !memory[key]) {
+        console.error('No key found for: ' + key)
+        window.top.postMessage(JSON.stringify({
+          status: 'error',
+          reason: 'value not found',
+          key,
+          id,
+        }), DOMAIN)
+        return
+      }
+      const value = memory[key]
+      window.top.postMessage(JSON.stringify({
+        status: 'ok',
+        id,
+        key,
+        value
+      }), DOMAIN)
+    } else if (data.type === SET) {
+      if (!id) {
+        console.error('No id received in message: ' + msg.data)
+        return
+      }
+      if (!key) {
+        console.error('No key received in message: ' + msg.data)
+        window.top.postMessage(JSON.stringify({
+          status: 'error',
+          reason: 'no key sent',
+          id,
+        }), DOMAIN)
+        return
+      }
+      const { value } = data
+      if (!value) {
+        console.error('No value received in message: ' + msg.data)
+        window.top.postMessage(JSON.stringify({
+          status: 'error',
+          reason: 'no value sent',
+          id,
+          key
+        }), DOMAIN)
+        return
+      }
+      memory[key] = value
+      setTimeout(() => {
+        localStorage.setItem('memory', JSON.stringify(memory))
+      })
+      window.top.postMessage(JSON.stringify({
+        status: 'ok',
+        id,
+        key,
+        value
+      }), DOMAIN)
+    } else {
+      console.warn('Unrecognized data type: ' + data.type)
+    }
+  }
+</script>

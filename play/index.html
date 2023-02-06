@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+  </head>
+  <body>
+    <script type="text/javascript" src="./index.js"></script>
+    <script type="text/javascript">
+      ;(async function($) {
+        const result = await $.idGet('test')
+        alert(result)
+      })(window).catch(err => {
+        console.error(err)
+      })
+    </script>
+  </body>
+</html>
